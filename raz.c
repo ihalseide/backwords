@@ -523,11 +523,6 @@ void ip_init ()
 
 int main (int argc, char * argv [])
 {
-#if DEBUG
-	printf("Note: this Raz is compiled in debug mode\n");
-	printf("Press ENTER to continue...");
-	getchar();
-#endif
 	memory_init();
 	pstack_init();
 	rstack_init();
