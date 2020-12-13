@@ -1,5 +1,7 @@
 /* raz.c
- * gcc -std=c99 -Wall -o raz raz.c
+ * gcc -std=c99 -Wall -o raz.exe raz.c
+ * (or)
+ * gcc -std=c99 -Wall -o raz.exe raz.c -DDEBUG
  */
 
 #include <stdlib.h>
