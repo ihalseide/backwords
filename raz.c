@@ -263,51 +263,6 @@ void rstack_init ()
 	memory += RSTACK_DEPTH;
 }
 
-// Add the definition for a word defined in this C program
-void add_cword (const char * word, void (* func) (void))
-{
-	struct word * new = (struct word *) phere;
-	new->link = (struct word *) link;
-	link = (struct word *) phere;
-	phere += sizeof(struct word);
-	int len = strlen(word);
-	new->length = len;
-	for (int i = 0; i < 27; i++)
-	{
-		char c;
-		if (i < len)
-		{
-			c = word[i];
-		}
-		else
-		{
-			c = ' ';
-		}
-		new->name[i] = c;
-	}
-	new->code = func;
-}
-
-// Check if two length-encoded strings are equal
-int str_eq_ (const char * str1, int len1, const char * str2, int len2)
-{
-	if (len1 == len2)
-	{
-		for (int i = 0; i < len1; i++)
-		{
-			if (str1[i] != str2[i])
-			{
-				return 0;
-			}
-		}
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
 // Word to compare two length-encoded strings being equal
 void dollareq ()
 {
@@ -342,36 +297,6 @@ void true ()
 void false ()
 {
 	push(0);
-}
-
-// Code to find a word definition with a given name
-struct word * find_ (char * want_str, int want_len)
-{
-	struct word * follow_link = (struct word *) link;
-	assert(follow_link != NULL);
-	assert(strlen(want_str) == want_len);
-	while (follow_link)
-	{
-		int len = follow_link->length;
-		char * str = follow_link->name;
-		if (str_eq_(want_str, want_len, str, len))
-		{
-			return follow_link;
-		}
-		else
-		{
-			follow_link = follow_link->link;
-		}
-	}
-	return NULL;
-}
-
-// Word for finding a word `find_'
-void find ()
-{
-	char * str = (char *) pop();
-	int length = (int) pop();
-	push((cell) find_(str, length));
 }
 
 // Word to get the address of here
@@ -420,11 +345,6 @@ void rspbang ()
 void rspat ()
 {
 	push((cell) rstack);
-}
-
-void find_cword ()
-{
-
 }
 
 void code ()
