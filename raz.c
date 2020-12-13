@@ -3,6 +3,7 @@
  */
 
 #include <stdlib.h>
+#include <ctype.h>
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -18,18 +19,18 @@ enum op {
 	Halt, Mzero, Dup, Swap, Drop, Over, Szero, Dspbang, Dspat,
 	Tor, Rfrom, Rspbang, Rspat, Rzero, Add, Mul, Div_, Sub, Or,
 	And, Xor, Invert, Eq, Not, True, False, Query, Dot, Branch,
-	Skip, Lit, Bang, Cbang, At, Cat, Exit_, Quit
+	Skip, Lit, Bang, Cbang, At, Cat, Exit_, Getcell, Quit
 };
 // Names kept for testing
 char * op_names [] = {
 	"Halt", "Mzero", "Dup", "Swap", "Drop", "Over", "Szero", "Dspbang", "Dspat",
 	"Tor", "Rfrom", "Rspbang", "Rspat", "Rzero", "Add", "Mul", "Div_", "Sub", "Or",
 	"And", "Xor", "Invert", "Eq", "Not", "True", "False", "Query", "Dot", "Branch",
-	"Skip", "Lit", "Bang", "Cbang", "At", "Cat", "Exit_", "Quit"
+	"Skip", "Lit", "Bang", "Cbang", "At", "Cat", "Exit_", "Getcell", "Quit"
 };
 
 // Main number/data type is the "cell"
-typedef long int cell;
+typedef long cell;
 
 // Main program memory pointer
 char * memory_base;
@@ -45,6 +46,20 @@ cell * pstack;
 // Return Stack Pointer
 cell * rstack_base;
 cell * rstack;
+
+#if DEBUG
+void print_stack ()
+{
+	printf("<Stack:");
+	cell * p = pstack_base;
+	while (p < pstack)
+	{
+		printf(" %ld", *p);
+		p++;
+	}
+	printf(">");
+}
+#endif
 
 // Push to the Parameter Stack
 void push (cell x)
@@ -314,27 +329,44 @@ void rspat ()
 }
 
 void code (cell);
-// Invoke the interpreter
-// TODO: invoke an interpret function and stuff
+
+void interpret ()
+{
+	cell w = *ip;
+	ip++;
+	code(w);
+}
+
+// Start the virtual program by invoking the inner Interpreter
 void quit ()
 {
-	// Reset the stacks
-	pstack = pstack_base;
+	// Reset the Return Stack
 	rstack = rstack_base;
-
 	// Infinitely execute the virtual program
 	while (1)
 	{
-		cell w = *ip;
-		ip++;
-		code(w);
+		interpret();
 	}
 }
 
 void halt ()
 {
+#if DEBUG
 	printf("\nreceived code 0x00 (halt)\n");
+	printf("Print memory dump? (y/n) > ");
+	char c = getchar();
+	if (c == 'y' || c == 'Y')
+	{
+		hex_dump(memory_base, 2 * 1024);
+	}
+#endif
+	putchar('\n');
 	exit(-1);
+}
+
+void getcell ()
+{
+	push(sizeof(cell));
 }
 
 // Used in the `code' function if an invalid code is reached
@@ -347,14 +379,29 @@ void bad_code (cell instruction)
 // Execute the C code identified by an operation code
 void code (cell instruction)
 {
-	// DEBUG:
+#if DEBUG
+	print_stack();
 	// Note: this is a range check with the first and the last op-code
-	/*
 	if (Halt < instruction && instruction <= Quit)
 	{
-		printf("<%s>\n", op_names[instruction]);
+		if (instruction == Lit)
+		{
+			cell literal = *ip;
+			if (isprint((char) literal))
+			{
+				printf("<Lit %ld = '%c'>\n", literal, (char) literal);
+			}
+			else
+			{
+				printf("<Lit %ld>\n", literal);
+			}
+		}
+		else
+		{
+			printf("<%s>\n", op_names[instruction]);
+		}
 	}
-	*/
+#endif
 	switch (instruction)
 	{
 		case Halt:    halt();    break;
@@ -393,6 +440,7 @@ void code (cell instruction)
 		case At:      at();      break;
 		case Cat:     cat();     break;
 		case Exit_:   exit_();   break;
+		case Getcell: getcell(); break;
 		case Quit:    quit();    break;
 		default: bad_code(instruction);
 	}
@@ -405,6 +453,10 @@ void pass_args (int argc, char * argv [])
 	push((cell) argv);
 	assert(*(pstack - 1) == ((cell) argv));
 	assert(*(pstack - 2) == argc);
+#if DEBUG
+	printf("Argument count: %d\n", argc);
+	printf("Address of argument values: %p\n", argv);
+#endif
 }
 
 // Initialize memory with a call to MALLOC
@@ -414,6 +466,9 @@ void memory_init ()
 {
 	memory_base = malloc(INITIAL_MEMORY);
 	memory = memory_base;
+#if DEBUG
+	printf("Memory begins at %p\n", memory_base);
+#endif
 }
 
 // Initialize the Parameter Stack by taking from memory from the memory pointer
@@ -421,7 +476,10 @@ void pstack_init ()
 {
 	pstack_base = (cell *) memory;
 	pstack = pstack_base;
-	memory += PSTACK_DEPTH * sizeof(*pstack);
+	memory += PSTACK_DEPTH * sizeof(cell);
+#if DEBUG
+	printf("Parameter/Data Stack starts at %p\n", pstack_base);
+#endif
 }
 
 // Initialize the Return Stack by taking from memory from the memory pointer
@@ -429,38 +487,50 @@ void rstack_init ()
 {
 	rstack_base = (cell *) memory;
 	rstack = rstack_base;
-	memory += RSTACK_DEPTH * sizeof(*pstack);
+	memory += RSTACK_DEPTH * sizeof(cell);
+#if DEBUG
+	printf("Return Stack starts at %p\n", rstack_base);
+#endif
 }
 
 // Start executing the virtual code
 void load_bootcode ()
 {
 	cell boot_code [] = {
-		Lit, '!', Lit, (cell) memory, Bang,
-		Lit, '*', Dot,
+		Drop, Drop,
+		Lit, '?',
+		Lit, '?',
+		Lit, 1,
+		Add,
+		Dup, Dot,
+		Tor,
+		Dot,
 		Halt
 	};
 	memcpy(memory, boot_code, sizeof(boot_code));
-	// DEBUG:
-	printf("Bootcode size: %ld chars or %ld cells\n", sizeof(boot_code), sizeof(boot_code)/sizeof(boot_code[0]));
+#if DEBUG
+	printf("bootcode is %ld chars or %ld cells long\n", sizeof(boot_code), sizeof(boot_code)/sizeof(boot_code[0]));
+#endif
+}
+
+// Initialize the Instruction Pointer
+void ip_init ()
+{
+	ip = (cell *) memory;
 }
 
 int main (int argc, char * argv [])
 {
+#if DEBUG
+	printf("Note: this Raz is compiled in debug mode\n");
+	printf("Press ENTER to continue...");
+	getchar();
+#endif
 	memory_init();
 	pstack_init();
 	rstack_init();
 	pass_args(argc, argv);
-
 	load_bootcode();
-	// DEBUG
-	printf("Memory base: %p\n", memory_base);
-	printf("Memory contents (2K shown):\n");
-	hex_dump(memory_base, 2 * 1024);
-
-	// Set the Instruction Pointer to the beginning of available memory
-	ip = (cell *) memory;
-
-	// Start by invoking the inner Interpreter
+	ip_init();
 	quit();
 }
