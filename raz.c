@@ -1,4 +1,5 @@
 /* raz.c
+ * gcc -std=c99 -Wall -o raz raz.c
  */
 
 #include <stdlib.h>
@@ -7,62 +8,77 @@
 #include <string.h>
 #include "hexdump.c"
 
-#define INITIAL_MEMORY 8 * 1024
+#define INITIAL_MEMORY (8 * 1024)
 #define PSTACK_DEPTH 64
 #define RSTACK_DEPTH 64
+
+// Op-codes and names of thos operations for the virtual machine
+// These lists should be the same size
+enum op {
+	Halt, Mzero, Dup, Swap, Drop, Over, Szero, Dspbang, Dspat,
+	Tor, Rfrom, Rspbang, Rspat, Rzero, Add, Mul, Div_, Sub, Or,
+	And, Xor, Invert, Eq, Not, True, False, Query, Dot, Branch,
+	Skip, Lit, Bang, Cbang, At, Cat, Exit_, Quit
+};
+// Names kept for testing
+char * op_names [] = {
+	"Halt", "Mzero", "Dup", "Swap", "Drop", "Over", "Szero", "Dspbang", "Dspat",
+	"Tor", "Rfrom", "Rspbang", "Rspat", "Rzero", "Add", "Mul", "Div_", "Sub", "Or",
+	"And", "Xor", "Invert", "Eq", "Not", "True", "False", "Query", "Dot", "Branch",
+	"Skip", "Lit", "Bang", "Cbang", "At", "Cat", "Exit_", "Quit"
+};
 
 // Main number/data type is the "cell"
 typedef long int cell;
 
-// (Virtual) Instruction Pointer
+// Main program memory pointer
+char * memory_base;
+char * memory;
+
+// The Virtual Instruction Pointer
 cell * ip;
 
-// Main program memory pointer
-char * memory;
-char * memory_base;
-
-// Compilation pointer
-char * phere;
-
-// Data Stack Pointer / Parameter Stack Pointer
+// Data/Parameter Stack Pointer
+cell * pstack_base;
 cell * pstack;
 
 // Return Stack Pointer
+cell * rstack_base;
 cell * rstack;
 
-void next ()
-{
-
-}
-
-// Push to the parameter stack
+// Push to the Parameter Stack
 void push (cell x)
 {
 	*pstack = x;
 	pstack++;
+	assert((pstack - pstack_base) < PSTACK_DEPTH);
 }
 
-// Push to the parameter stack
+// Push to the Parameter Stack
 cell pop ()
 {
 	pstack--;
+	assert(pstack >= pstack_base);
 	return *pstack;
 }
 
-// Push to the return stack
+// Push to the Return Stack
 void rpush (cell x)
 {
 	*rstack = x;
 	rstack++;
+	assert((rstack - rstack_base) < RSTACK_DEPTH);
 }
 
-// Pop from the return stack
+// Pop from the Return Stack
 cell rpop ()
 {
 	rstack--;
+	assert(pstack >= pstack_base);
 	return *rstack;
 }
-// Word to store a cell value at an address
+
+// Word to store a Cell value at an address
 void bang ()
 {
 	cell * addr = (cell *) pop();
@@ -70,7 +86,7 @@ void bang ()
 	*addr = val;
 }
 
-// Word to set a byte at an address
+// Word to store a byte value at an address
 void cbang ()
 {
 	char * addr = (char *) pop();
@@ -78,34 +94,36 @@ void cbang ()
 	*addr = val;
 }
 
-// Word to fetch a value at an address
+// Word to fetch a cell value at an address
 void at ()
 {
 	push(*((cell *) pop()));
 }
 
-// Word to fetch a byte at an address
+// Word to fetch a byte value at an address
 void cat ()
 {
 	push(*((char *) pop()));
-}
-
-// Word to compile a cell at Here
-void comma ()
-{
-
-}
-
-// Word to compile a byte at Here
-void ccomma ()
-{
-
 }
 
 // Word for equality comparison of the top 2 cells
 void eq ()
 {
 	push(pop() == pop());
+}
+
+// Word to push the value of true to the Parameter Stack
+// True is 1, as per the standard for C
+void true ()
+{
+	push(1);
+}
+
+// Word to push the value of false to the Parameter Stack
+// False is 0, as per the standard for C
+void false ()
+{
+	push(0);
 }
 
 // Word for converting between True or False, which are 1 or 0 respectively
@@ -239,38 +257,6 @@ void lit ()
 void exit_ ()
 {
 	ip = (cell *) rpop();
-	next();
-}
-
-void memory_init ()
-{
-	memory_base = malloc(INITIAL_MEMORY);
-	memory = memory_base;
-
-	phere = memory;
-	memory++;
-}
-
-void pstack_init ()
-{
-	pstack = memory;
-	memory += PSTACK_DEPTH;
-}
-
-void rstack_init ()
-{
-	rstack = memory;
-	memory += RSTACK_DEPTH;
-}
-
-// Word to compare two length-encoded strings being equal
-void dollareq ()
-{
-	int len1 = (int) pop();
-	char * str1 = (char *) pop();
-	int len2 = (int) pop();
-	char * str2 = (char *) pop();
-	push((cell) str_eq_(str1, len1, str2, len2));
 }
 
 // "To R" >R, pops the Parameter Stack and pushes it to the Return Stack
@@ -285,36 +271,16 @@ void rfrom ()
 	push(rpop());
 }
 
-// Word to push the value of true to the Parameter Stack
-// True is 1, as per the standard for C
-void true ()
-{
-	push(1);
-}
-
-// Word to push the value of false to the Parameter Stack
-// False is 0, as per the standard for C
-void false ()
-{
-	push(0);
-}
-
-// Word to get the address of here
-void here ()
-{
-	push((cell) phere);
-}
-
 // Word to get the address of the bottom of the Parameter Stack
 void szero ()
 {
-	push((cell) pstack);
+	push((cell) pstack_base);
 }
 
 // Word to get the address of the bottom of the Return Stack
 void rzero ()
 {
-	push((cell) rstack);
+	push((cell) rstack_base);
 }
 
 // Word to get the address of the bottom of Memory
@@ -347,174 +313,88 @@ void rspat ()
 	push((cell) rstack);
 }
 
-void code ()
+void code (cell);
+// Invoke the interpreter
+// TODO: invoke an interpret function and stuff
+void quit ()
 {
-	cell instruction = pop();
+	// Reset the stacks
+	pstack = pstack_base;
+	rstack = rstack_base;
+
+	// Infinitely execute the virtual program
+	while (1)
+	{
+		cell w = *ip;
+		ip++;
+		code(w);
+	}
+}
+
+void halt ()
+{
+	printf("\nreceived code 0x00 (halt)\n");
+	exit(-1);
+}
+
+// Used in the `code' function if an invalid code is reached
+void bad_code (cell instruction)
+{
+	fprintf(stderr, "bad code: %ld at address: %p\n", instruction, ip);
+	exit(-1);
+}
+
+// Execute the C code identified by an operation code
+void code (cell instruction)
+{
+	// DEBUG:
+	// Note: this is a range check with the first and the last op-code
+	/*
+	if (Halt < instruction && instruction <= Quit)
+	{
+		printf("<%s>\n", op_names[instruction]);
+	}
+	*/
 	switch (instruction)
 	{
-		case 0:
-			// "M0" :: mzero
-			mzero();
-			break;
-		case 1:
-			// "here" :: here
-			here();
-			break;
-		case 2:
-			// "dup" :: dup
-			dup();
-			break;
-		case 3:
-			// "swap" :: swap
-			swap();
-			break;
-		case 4:
-			// "drop" :: drop
-			drop();
-			break;
-		case 5:
-			// "over" :: over
-			over();
-			break;
-		case 6:
-			// "S0" :: szero
-			szero();
-			break;
-		case 7:
-			// "DSP!" :: dspbang
-			dspbang();
-			break;
-		case 8:
-			// "DSP@" :: dspat
-			dspat();
-			break;
-		case 9:
-			// ">R" :: tor
-			tor();
-			break;
-		case 10:
-			// "R>" :: rfrom
-			rfrom();
-			break;
-		case 11:
-			// "RSP!" :: rspbang
-			rspbang();
-			break;
-		case 12:
-			// "RSP@" :: rspat
-			rspat();
-			break;
-		case 13:
-			// "R0" :: rzero
-			rzero();
-			break;
-		case 14:
-			// "+" :: add
-			add();
-			break;
-		case 15:
-			// "*" :: mul
-			mul();
-			break;
-		case 16:
-			// "/" :: div_
-			div_();
-			break;
-		case 17:
-			// "-" :: sub
-			sub();
-			break;
-		case 18:
-			// "|" :: or
-			or();
-			break;
-		case 19:
-			// "&" :: and
-			and();
-			break;
-		case 20:
-			// "^" :: xor
-			xor();
-			break;
-		case 21:
-			// "~" :: invert
-			invert();
-			break;
-		case 22:
-			// "=" :: eq
-			eq();
-			break;
-		case 23:
-			// "not" :: not
-			not();
-			break;
-		case 24:
-			// "true" :: true
-			true();
-			break;
-		case 25:
-			// "false" :: false
-			false();
-			break;
-		case 26:
-			// "?" :: query
-			query();
-			break;
-		case 27:
-			// "." :: dot
-			dot();
-			break;
-		case 28:
-			// "branch" :: branch
-			branch();
-			break;
-		case 29:
-			// "skip" :: skip
-			skip();
-			break;
-		case 30:
-			// "lit" :: lit
-			lit();
-			break;
-		case 31:
-			// "find" :: find
-			find();
-			break;
-		case 32:
-			// "!" :: bang
-			bang();
-			break;
-		case 33:
-			// "c!" :: cbang
-			cbang();
-			break;
-		case 34:
-			// "@" :: at
-			at();
-			break;
-		case 35:
-			// "c@" :: cat
-			cat();
-			break;
-		case 36:
-			// "," :: comma
-			comma();
-			break;
-		case 37:
-			// "c," :: ccomma
-			ccomma();
-			break;
-		case 38:
-			// "$= :: dollareq
-			dollareq();
-			break;
-		case 39:
-			// "exit" :: exit_
-			exit_();
-			break;
-		default:
-			fprintf(stderr, "unknown instruction: #%d", instruction);
-			break;
+		case Halt:    halt();    break;
+		case Mzero:   mzero();   break;
+		case Dup:     dup();     break;
+		case Swap:    swap();    break;
+		case Drop:    drop();    break;
+		case Over:    over();    break;
+		case Szero:   szero();   break;
+		case Dspbang: dspbang(); break;
+		case Dspat:   dspat();   break;
+		case Tor:     tor();     break;
+		case Rfrom:   rfrom();   break;
+		case Rspbang: rspbang(); break;
+		case Rspat:   rspat();   break;
+		case Rzero:   rzero();   break;
+		case Add:     add();     break;
+		case Mul:     mul();     break;
+		case Div_:    div_();    break;
+		case Sub:     sub();     break;
+		case Or:      or();      break;
+		case And:     and();     break;
+		case Xor:     xor();     break;
+		case Invert:  invert();  break;
+		case Eq:      eq();      break;
+		case Not:     not();     break;
+		case True:    true();    break;
+		case False:   false();   break;
+		case Query:   query();   break;
+		case Dot:     dot();     break;
+		case Branch:  branch();  break;
+		case Skip:    skip();    break;
+		case Lit:     lit();     break;
+		case Bang:    bang();    break;
+		case Cbang:   cbang();   break;
+		case At:      at();      break;
+		case Cat:     cat();     break;
+		case Exit_:   exit_();   break;
+		case Quit:    quit();    break;
+		default: bad_code(instruction);
 	}
 }
 
@@ -527,11 +407,60 @@ void pass_args (int argc, char * argv [])
 	assert(*(pstack - 2) == argc);
 }
 
+// Initialize memory with a call to MALLOC
+// Note: the memory_base pointer should not change
+// Note: the memory pointer should change as things allocate from it
+void memory_init ()
+{
+	memory_base = malloc(INITIAL_MEMORY);
+	memory = memory_base;
+}
+
+// Initialize the Parameter Stack by taking from memory from the memory pointer
+void pstack_init ()
+{
+	pstack_base = (cell *) memory;
+	pstack = pstack_base;
+	memory += PSTACK_DEPTH * sizeof(*pstack);
+}
+
+// Initialize the Return Stack by taking from memory from the memory pointer
+void rstack_init ()
+{
+	rstack_base = (cell *) memory;
+	rstack = rstack_base;
+	memory += RSTACK_DEPTH * sizeof(*pstack);
+}
+
+// Start executing the virtual code
+void load_bootcode ()
+{
+	cell boot_code [] = {
+		Lit, '!', Lit, (cell) memory, Bang,
+		Lit, '*', Dot,
+		Halt
+	};
+	memcpy(memory, boot_code, sizeof(boot_code));
+	// DEBUG:
+	printf("Bootcode size: %ld chars or %ld cells\n", sizeof(boot_code), sizeof(boot_code)/sizeof(boot_code[0]));
+}
+
 int main (int argc, char * argv [])
 {
 	memory_init();
 	pstack_init();
 	rstack_init();
-
 	pass_args(argc, argv);
+
+	load_bootcode();
+	// DEBUG
+	printf("Memory base: %p\n", memory_base);
+	printf("Memory contents (2K shown):\n");
+	hex_dump(memory_base, 2 * 1024);
+
+	// Set the Instruction Pointer to the beginning of available memory
+	ip = (cell *) memory;
+
+	// Start by invoking the inner Interpreter
+	quit();
 }
