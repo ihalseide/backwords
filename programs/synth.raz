@@ -1,0 +1,58 @@
+begin \ Synth and sound-generation library
+
+decimal
+
+: Hertz ;
+: bits # 2 swap ** ;
+
+# 5 constant fix
+# 10 fix ** constant 10^fix
+# 314159 constant PI
+# 628318 constant PI*2
+# 157079 constant PI/2
+# 986960 constant PI^2
+
+\ Audio parameters
+# 44100 Hertz constant sampleRate
+# 16 bits constant amplitude
+
+: /PI PI / ;
+: floor 10^fix swap / 10^fix * ;
+
+\ Sine wave approximation (Bhaskara I approximation)
+\ https://datagenetics.com/blog/july12019/index.html
+\ sin(x) = 16x(pi-x)/(5pi^2-4x(pi-x))
+: _f1 dup PI swap - * * ;
+: sinNum # 16 swap _f1 ;
+: sinDen # 4 swap _f1 lit [ PI^2 # 5 * ] , - ;
+: (sin) dup sinDen swap sinNum / ;
+: sin PI*2 mod (sin) dup PI > if negate then ;
+hide _f1
+hide sinNum
+hide sinDen
+hide (sin)
+
+\ Two of each type of wave?
+
+( freq time -- norm-amp )
+: sawtooth dup /PI 050000 + floor swap dup /PI - # 2 * ;
+: square ;
+: _f2 PI * swap # 2 * + # 4 PI * swap / ;
+: triangle dup # 3 _f2 floor swap 1 _f2 - abs # 4 * 1- ;
+hide _f2
+
+( freq time -- amp )
+: ~sin sin ;
+: ~sawtooth sawtooth ;
+: ~square square ;
+: ~triangle triangle ;
+
+( amp -- )
+: >audio ... ;
+
+\ --- /
+
+0 variable time
+: run 440 Hertz ~sin >audio 1 time +! branch -4 ;
+
+end

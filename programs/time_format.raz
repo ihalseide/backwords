@@ -1,0 +1,12 @@
+ s" JanFebMarAprMayJunJulAugSepOctNovDec"
+ variable #months
+ variable @months
+: << 10 swap ** / ; \ `**' will be an exponentiation function
+: year dup 4 << ;
+: $index 3 * @months + ;
+: abbrev 3 1- $index .$ ;
+: month dup 2 << 12 & ; 
+: day dup 31 & 2 0. ; \ `0.' will print a number with leading zeroes
+: date-format year . space month abbrev space day . ;
+hide <<
+: test 20201203 date-format ; \ should print "2020 dec 03"

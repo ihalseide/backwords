@@ -1,0 +1,24 @@
+
+ARM memory addresses
+physical starts at 0x00000000
+peripheral physical addresses range from 0x20000000 to 0x20FFFFFF
+peripherals at bus address 0x7Exxxxxx are abailable at physical adresses 0x20xxxxxx
+you should place a mem write barrier before the 1st write to a peripheral, if changing from a different peripheral
+you should place a mem read barrier after the last read from a peripheral, if changing to a different peripheral
+the auxiliary enable register controls the UART and SPI auxiliaries
+
+there is secure state and non-secure state
+in secure state, there are two privilege levels: PL0, and PL1
+PL0 is privilege level 0, user mode
+PL1 is privilege level 1 (system)
+PL2 can run in non-secure state, and is Hyp mode
+
+an exception is a condition that alters the normal execution flow
+exceptions can be generated in different ways: the direct result of an instruction, such as an invalid instruction, or indirectly because of the state of the system such as an interrupt
+exceptions must be taken to a mode with PL1 or higher
+there are 7 implemented processor modes, with 2 extra mode extensions
+ARM register table in DDI0406C_d_armv7ar_arm.pdf, page #1144
+there are 16 registers
+CPSR is the current program status register
+there is an endianness bit in the CPSR, and it affects memory loading and storing, but not instruction fetches
+
