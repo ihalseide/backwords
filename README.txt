@@ -6,3 +6,5 @@ you understand ARM assembly and how to write a Forth OS for the Raspberry Pi! Wr
 Yours,
 
 Past Izak, 2020-12-01
+
+@COPYLEFT ALL WRONGS RESERVED
