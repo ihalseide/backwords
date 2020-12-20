@@ -2,15 +2,15 @@ R0
 R1
 R2
 R3
-R4	variable register 1
-R5	variable register 2
-R6	variable register 3
-R7	variable register 4
-R8	reserve for later
-R9	reserve for later
-R10	reserve for later
+R4	
+R5	
+R6	
+R7	
+R8	
+R9	
+R10	working register
 R11	next forth instruction
 R12	return stack pointer
-R13/sp	ARM stack pointer
-R14/lr	ARM link register
-R15/pc	ARM program counter
+R13/sp	parameter stack pointer
+R14/lr	link register
+R15/pc	program counter
