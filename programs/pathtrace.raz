@@ -1,0 +1,19 @@
+" C:\Raz\programs\scene.txt"
+constant #scene_file
+constant $scene_file
+1366 constant Width
+768 constant Height
+0 var ->vector
+: .res ." screen resolution: " Width . ." x" Height . CR ;
+: scene_file $scene_file #scene_file ;
+: open ;
+: load_model ;
+: load_scene scene_file open load_model ;
+: fullscreen ; \ Windows OS call
+0 var Window
+: screen Width Height fullscreen Window ! ;
+: tick ;
+true value keep_looping
+: loop keep_looping if tick # -3 branch then ;
+: start screen .res load_scene loop ;
+start
