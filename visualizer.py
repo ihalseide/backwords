@@ -2,7 +2,6 @@
 import time
 import pygame
 from virtual_machine import VM
-import drawing
 
 def init_screen (title, width, height):
     pygame.init()
