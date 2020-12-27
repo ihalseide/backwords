@@ -1,7 +1,0 @@
-Typical characteristics of a MachineForth include:
-* Tail recursion elimination
-* Non-destructive IF (in ANSI Forth, IF pops the value it tests off the stack; in MachineForth, IF actually tests the CPU's zero flag directly).
-* A new core word, -IF, is used to quickly check for less-than-zero conditions.
-* ?, 0=, or some other primitive to set the CPU's zero-flag correctly for the benefit of IF.
-* 0< or similar primitive to set the CPU's negative-flag correctly for the benefit of -IF.
-* Compiled words have no headers in the output image; the output of a MachineForth compiler is very often a static binary image, as you'd get from, say, a C compiler.
