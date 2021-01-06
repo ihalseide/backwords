@@ -1,7 +1,3 @@
-def putch (character):
-    '''Print a single character out'''
-    print(end=character)
-
 class _Getch:
     '''Gets a single character from standard input.
     Does not echo to the screen.'''

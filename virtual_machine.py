@@ -1,142 +1,145 @@
-#!/usr/bin/env python3
+from char_io import getch
 
-from char_io import getch, putch
-from iterable import iterable
+# Convert Python values into numbers for the VM
+def to_int (self, x) -> int:
+    if type(x) == int:
+        return x
+    elif type(x) == str or type(x) == bytes:
+        if len(x) == 1:
+            return ord(str(x)[0])
+    elif type(x) == bool:
+        return -1 if x else 0
+    raise ValueError('Cannot convert type %s to int' % type(x))
 
-class Word:
-    def __init__ (self, function, immediate=False, hidden=False):
-        self.function = function
-        self.immediate = immediate
-        self.hidden = hidden
-
-def norm_word (x):
-    if iterable(x):
-        return Word(*x)
-    else:
-        return Word(x)
-
-def norm_dict (dictionary):
-    return {name: norm_word(w) for name, w in dictionary.items()}
-
-# Virtual Machine:
-class VM:
+class Machine:
+    '''Virtual machine'''
 
     def __init__ (self):
         # Parameter Stack
         self.stack = []
         # Return Stack
         self.rstack = []
-        # Memory array ( * 1024 is kilobytes )
-        self.memory = [0 for _ in range(10 * 1024)]
-        # Virtual Instruction Pointer
+        # Code / instructions
+        self.instructions = []
+        # Virtual Instruction Pointer / Index
         self.ip = 0
-        # Compile mode or Interpret mode flag
-        self.compiling = False
-        # Word dictionary
-        self.dictionary = self.init_dict()
-
-    def init_dict (self):
-        push = self.push
-        pop = self.pop
-        return norm_dict({
-            'dup': lambda: push(self.stack[-1]),
+        # Memory list and memory dictionary
+        self.memory = []
+        self.dict_memory = {}
+        # Word / Instruction dictionary
+        push, pop = self.push, self.pop
+        self.dictionary = {
+            '*mem': self.make_mem,
+            '*dict': self.make_dict,
+            'halt': self.halt,
+            'dup': self.dup,
             'drop': lambda: pop(),
             'swap': lambda: self.swap(),
-            '@': lambda: push(self.fetch(pop())),
-            '!': lambda: self.store(pop(), pop()),
+            'topple': self.topple,
             '+': lambda: push(pop() + pop()),
-            '1+': lambda: push(+1 + pop()),
+            '++': lambda: push(pop() + 1),
             '-': lambda: push(pop() - pop()),
-            '1-': lambda: push(-1 + pop()),
+            '--': lambda: push(pop() - 1),
             '*': lambda: push(pop() * pop()),
             '**': lambda: push(pop() ** pop()),
             '/': lambda: push(pop() / pop()),
-            'mod': lambda: push(pop() % pop()),
+            '%': lambda: push(pop() % pop()),
             '<': lambda: push(pop() < pop()),
             '>': lambda: push(pop() > pop()),
             '=': lambda: push(pop() == pop()),
             '<=': lambda: push(pop() <= pop()),
             '>=': lambda: push(pop() >= pop()),
             '<>': lambda: push(pop() != pop()),
+            'and': self.and_,
+            'or': self.or_,
             'not': lambda: push(not pop()),
             '&': lambda: push(pop() & pop()),
             '|': lambda: push(pop() | pop()),
             '^': lambda: push(pop() ^ pop()),
-            '~': lambda: push(~pop()),
+            '~': lambda: push(~ pop()),
             '>R': lambda: self.rpush(pop()),
             'R>': lambda: push(self.rpop()),
             'Rdrop': lambda: self.rpop(),
             'Rdup': lambda: self.rpush(self.rstack[-1]),
-            'enter': lambda: self.enter(),
-            'exit': lambda: self.exit(),
-            'lit': lambda: self.do_lit(),
-            '[': (lambda: self.set_compiling(False), True) # immediate
-            ']': lambda: self.set_compiling(True),
-            ',': lambda: self.do_comma(),
-            ':': lambda: self.do_colon(),
-            ';': (lambda: self.do_semicolon(), True), # immediate
-            'immediate': (lambda: None, True), # immediate
             'key': lambda: push(getch()),
-            'emit': lambda: putch(chr(pop())),
-            'branch': lambda: self.do_branch(),
-            '(#)': lambda: self.do_number(),
-            '#': (['(#)'], True), # immediate
-        })
+            'utf8': lambda: push(pop().decode("utf-8")),
+            'input': lambda: push(input()),
+            'print': lambda: print(end=pop()),
+            'branch': self.branch,
+            '#': self.literal,
+            '!': self.store,
+            ':!': self.dict_store,
+            '@': self.fetch,
+            ':@': self.dict_fetch,
+            'str': push(str(pop())),
+            'int': push(int(pop())),
+        }
 
-    def set_compiling (self, boolean):
-        self.compiling = boolean
+    def make_mem (self):
+        self.memory = [None for _ in range(self.pop())]
 
-    def execute (self, word):
-        code = word.function
-        if callable(code):
-            word.function()
-        elif iterable(code):
-            pass
+    def make_dict (self):
+        self.dict_memory = {}
 
-    def start (self):
-        print(' '.join(self.dictionary.keys()))
+    def store (self):
+        x, y = self.pop(), self.pop()
+        self.memory[y] = x
 
-    def enter (self):
-        pass
+    def fetch (self):
+        self.push(self.memory[self.pop()])
 
-    def exit (self):
-        pass
+    def dict_store (self):
+        x, y = self.pop(), self.pop()
+        self.dict_memory[y] = x
 
-    def do_comma (self):
-        pass
+    def dict_fetch (self):
+        self.push(self.dict_memory[self.pop()])
 
-    def do_colon (self):
-        pass
+    def or_ (self):
+        a, b = self.pop(), self.pop()
+        self.push(a or b)
 
-    def do_semicolon (self):
-        pass
+    def and_ (self):
+        a, b = self.pop(), self.pop()
+        self.push(a and b)
 
-    def do_lit (self):
-        pass
+    def topple (self):
+        # Topple / clear the stack
+        self.stack = []
 
-    def do_branch (self):
-        pass
+    def halt (self):
+        self.ip = None
 
-    # Convert Python values into numbers for the VM
-    def convert (self, x) -> int:
-        x_type = type(x)
-        if x_type == int:
-            return x
-        elif x_type == True:
-            return -1
-        elif x == False:
-            return 0
-        elif x_type == str:
-            if len(x) == 1:
-                return ord(x)
-        elif x_type == bytes:
-            if len(x) == 1:
-                return x[0]
-        raise ValueError('Cannot convert type: %s' % x_type)
+    def dup (self):
+        push(self.stack[-1])
+
+    def branch (self):
+        self.ip += self.pop()
+
+    def literal (self):
+        self.push(self.ip + 1)
+        self.ip += 1
+
+    def compile_instruction (self, name):
+        self.append_instruction(self.dictionary[name])
+
+    def append_instruction (self, i):
+        self.instructions.append(i)
+
+    def add_word (self, name, function):
+        self.dictionary[name] = function
+
+    def step (self):
+        word = self.instructions[self.ip]
+        word()
+        self.ip += 1
+
+    def run (self):
+        while self.halt != self.instructions[self.ip]:
+            self.step()
 
     # Push to the Parameter Stack
     def push (self, x):
-        x = self.convert(x)
         self.stack.append(x)
         return x
 
@@ -147,6 +150,10 @@ class VM:
         else:
             raise ValueError('Parameter Stack Underflow')
 
+    # Push to the Return Stack
+    def rpush (self, x):
+        self.rstack.append(x)
+
     # Pop from the Return Stack
     def rpop (self):
         if len(self.rstack):
@@ -154,23 +161,4 @@ class VM:
         else:
             raise ValueError('Return Stack Underflow')
 
-    # Push to the Return Stack
-    def rpush (self, x):
-        self.rstack.append(x)
 
-def main ():
-    vm = VM()
-    vm.start()
-
-    vm.push('>')
-    vm.execute(vm.dictionary['emit'])
-    vm.execute(vm.dictionary['key'])
-    vm.execute(vm.dictionary['dup'])
-    vm.execute(vm.dictionary['emit'])
-
-    vm.push(1)
-    vm.execute(vm.dictionary['+'])
-    vm.execute(vm.dictionary['emit'])
-
-if __name__ == "__main__":
-    main()
