@@ -1,85 +1,79 @@
-from char_io import getch
-
-# Convert Python values into numbers for the VM
-def to_int (self, x) -> int:
-    if type(x) == int:
-        return x
-    elif type(x) == str or type(x) == bytes:
-        if len(x) == 1:
-            return ord(str(x)[0])
-    elif type(x) == bool:
-        return -1 if x else 0
-    raise ValueError('Cannot convert type %s to int' % type(x))
+# virtual machine code
 
 class Machine:
     '''Virtual machine'''
+    def __init__ (self, memory_len, cell_size):
+        self.is_started = False
+        self.cell_size = cell_size # bits
+        self._init_parameter_stack()
+        self._init_instructions()
+        self._init_memory(memory_len)
+        self._init_word_dictionary()
 
-    def __init__ (self):
-        # Parameter Stack
-        self.stack = []
-        # Return Stack
-        self.rstack = []
-        # Code / instructions
+    def _init_memory (self, length):
+        self.memory = [0 for _ in range(length)]
+
+    def _init_instructions (self):
         self.instructions = []
         # Virtual Instruction Pointer / Index
         self.ip = 0
-        # Memory list and memory dictionary
-        self.memory = []
-        self.dict_memory = {}
-        # Word / Instruction dictionary
+
+    def _init_parameter_stack (self):
+        self.stack = []
+
+    def _init_word_dictionary (self):
+        self.token_id = 0
+        self.comp_dictionary = {}
+        self.code_dictionary = {}
+        self._add_the_words()
+
+    def _add_the_words (self):
+        # Aliases
         push, pop = self.push, self.pop
-        self.dictionary = {
-            '*mem': self.make_mem,
-            '*dict': self.make_dict,
-            'halt': self.halt,
-            'dup': self.dup,
-            'drop': lambda: pop(),
-            'swap': lambda: self.swap(),
-            'topple': self.topple,
-            '+': lambda: push(pop() + pop()),
-            '++': lambda: push(pop() + 1),
-            '-': lambda: push(pop() - pop()),
-            '--': lambda: push(pop() - 1),
-            '*': lambda: push(pop() * pop()),
-            '**': lambda: push(pop() ** pop()),
-            '/': lambda: push(pop() / pop()),
-            '%': lambda: push(pop() % pop()),
-            '<': lambda: push(pop() < pop()),
-            '>': lambda: push(pop() > pop()),
-            '=': lambda: push(pop() == pop()),
-            '<=': lambda: push(pop() <= pop()),
-            '>=': lambda: push(pop() >= pop()),
-            '<>': lambda: push(pop() != pop()),
-            'and': self.and_,
-            'or': self.or_,
-            'not': lambda: push(not pop()),
-            '&': lambda: push(pop() & pop()),
-            '|': lambda: push(pop() | pop()),
-            '^': lambda: push(pop() ^ pop()),
-            '~': lambda: push(~ pop()),
-            '>R': lambda: self.rpush(pop()),
-            'R>': lambda: push(self.rpop()),
-            'Rdrop': lambda: self.rpop(),
-            'Rdup': lambda: self.rpush(self.rstack[-1]),
-            'key': lambda: push(getch()),
-            'utf8': lambda: push(pop().decode("utf-8")),
-            'input': lambda: push(input()),
-            'print': lambda: print(end=pop()),
-            'branch': self.branch,
-            '#': self.literal,
-            '!': self.store,
-            ':!': self.dict_store,
-            '@': self.fetch,
-            ':@': self.dict_fetch,
-            'str': push(str(pop())),
-            'int': push(int(pop())),
-        }
+        
+        self.add_word('halt', self.halt)
+        self.add_word('dup', self.dup)
+        self.add_word('drop', self.pop)
+        self.add_word('swap', self.swap)
+        self.add_word('topple', self.topple)
+        self.add_word('+', lambda: push(pop() + pop()))
+        self.add_word('+=1', lambda: push(pop() + 1))
+        self.add_word('-', lambda: push(pop() - pop()))
+        self.add_word('-=1', lambda: push(pop() - 1))
+        self.add_word('*', lambda: push(pop() * pop()))
+        self.add_word('**', lambda: push(pop() ** pop()))
+        self.add_word('/', lambda: push(pop() / pop()))
+        self.add_word('%', lambda: push(pop() % pop()))
+        self.add_word('<', lambda: push(pop() < pop()))
+        self.add_word('>', lambda: push(pop() > pop()))
+        self.add_word('=', lambda: push(pop() == pop()))
+        self.add_word('<=', lambda: push(pop() <= pop()))
+        self.add_word('>=', lambda: push(pop() >= pop()))
+        self.add_word('<>', lambda: push(pop() != pop()))
+        self.add_word('and', self.and_)
+        self.add_word('or', self.or_)
+        self.add_word('not', lambda: push(not pop()))
+        self.add_word('&', lambda: push(pop() & pop()))
+        self.add_word('|', lambda: push(pop() | pop()))
+        self.add_word('^', lambda: push(pop() ^ pop()))
+        self.add_word('~', lambda: push(~ pop()))
+        self.add_word('branch', self.branch)
+        self.add_word('skip', self.skip)
+        self.add_word('#', self.literal)
+        self.add_word('!', self.store)
+        self.add_word('@', self.fetch)
 
-    def make_mem (self):
-        self.memory = [None for _ in range(self.pop())]
+    def swap (self):
+        t, b = self.pop(), self.pop()
+        self.push(t)
+        self.push(b)
+        
+    def top (self):
+        return self.stack[-1]
 
-    def make_dict (self):
-        self.dict_memory = {}
+    def skip (self):
+        if self.pop():
+            self.ip += 1
 
     def store (self):
         x, y = self.pop(), self.pop()
@@ -87,13 +81,6 @@ class Machine:
 
     def fetch (self):
         self.push(self.memory[self.pop()])
-
-    def dict_store (self):
-        x, y = self.pop(), self.pop()
-        self.dict_memory[y] = x
-
-    def dict_fetch (self):
-        self.push(self.dict_memory[self.pop()])
 
     def or_ (self):
         a, b = self.pop(), self.pop()
@@ -109,56 +96,67 @@ class Machine:
 
     def halt (self):
         self.ip = None
+        self.is_started = False
 
     def dup (self):
-        push(self.stack[-1])
+        self.push(self.top())
 
     def branch (self):
         self.ip += self.pop()
 
     def literal (self):
-        self.push(self.ip + 1)
+        self.push(self.instructions[self.ip + 1])
         self.ip += 1
+
+    def find (self, name):
+        return self.comp_dictionary.get(name)
 
     def compile_instruction (self, name):
-        self.append_instruction(self.dictionary[name])
+        code = self.find(name)
+        self.append_instruction(code)
 
     def append_instruction (self, i):
-        self.instructions.append(i)
+        if self.is_started:
+            raise NotImplemented()
+        else:
+            self.instructions.append(i)
 
+    def next_token (self):
+        r = self.token_id
+        if self.token_id > ((2 ** self.cell_size) - 1):
+            raise ValueError('Token number exceeds cell max size')
+        self.token_id += 1
+        return r
+    
     def add_word (self, name, function):
-        self.dictionary[name] = function
+        id_ = self.next_token()
+        self.comp_dictionary[name] = id_
+        self.code_dictionary[id_] = function
 
+    def start (self):
+        self.is_started = True
+        self.ip = 0
+
+    def execute (self, token):
+        code = self.code_dictionary[token]
+        code()
+        
     def step (self):
-        word = self.instructions[self.ip]
-        word()
-        self.ip += 1
+        token = self.instructions[self.ip]
+        self.execute(token)
+        if self.ip is not None:
+            self.ip += 1
 
     def run (self):
-        while self.halt != self.instructions[self.ip]:
+        while self.is_started:
             self.step()
 
-    # Push to the Parameter Stack
     def push (self, x):
-        self.stack.append(x)
-        return x
+        # Push to the Parameter Stack
+        maxbit = (2 ** self.cell_size) - 1
+        self.stack.append(min(x, maxbit))
 
-    # Pop from the Parameter Stack
     def pop (self):
-        if len(self.stack):
-            return self.stack.pop(-1)
-        else:
-            raise ValueError('Parameter Stack Underflow')
-
-    # Push to the Return Stack
-    def rpush (self, x):
-        self.rstack.append(x)
-
-    # Pop from the Return Stack
-    def rpop (self):
-        if len(self.rstack):
-            return self.rstack.pop(-1)
-        else:
-            raise ValueError('Return Stack Underflow')
-
+        # Pop from the Parameter Stack
+        return self.stack.pop(-1)
 
