@@ -96,7 +96,8 @@ Double a given number
 Quadratic formula
     ###.....
 
+A Forth-like language
 
+- Idea: implement an accessible "features" list like in LISP implementations
 
-
-
+@COPYRIGHT ALL WRONGS RESERVED
