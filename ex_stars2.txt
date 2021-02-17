@@ -1,0 +1,24 @@
+?'0s-:#9>n; :#13s#0=n^_'*,#1s-#22v #10,; 
+?                                        get a character from stdin and put it on the stack
+ '0                                      put '0' on the stack, as a char code
+   s-                                    swap the two numbers and get the difference
+     :                                   duplicate the number
+      #9>                                see if it is bigger than 9
+         n;                              if it is, end the program, otherwise...
+            :                            duplicate the number
+             #13s                        swap in 13, for branching forward later
+                 #0=                     compare the number with 0
+                    n^            v      if it is equal to 0, jump forward 13 characters
+                      _                  otherwise, drop the 13
+                       '*,               print out an asterisk character
+                          #1s-           subtract 1 from the number
+           ^                  #22v       jump backwards 22 characters
+                                   #10,; this point is reached from the 13 character forward jump,
+                                             It prints a newline and ends the program
+
+This program:
+Get a 1-digit number from the user and print out that many star and then a newline
+
+Analogous Python Code:
+x = ord(input()[0]) - ord('0')
+if x < 10: print('*' * x)

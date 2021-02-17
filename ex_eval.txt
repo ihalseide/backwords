@@ -1,0 +1,3 @@
+';:,.
+
+Test the quote and eval operation to make the program halt, also print out the semicolon
