@@ -2,11 +2,12 @@
 
 Backwords is a low level esoteric programming language. There is a data stack, a memory tape, and a program counter. All values are bytes in the range 0 to 255, and the values wrap around. The program runs in an implicit infinite loop that can only exit if there is a runtime error or if the semicolon ';' command is executed.
 
-## Issues
+https://github.com/ihalseide/backwords
 
-* There is more memory than the program can access with only 1-byte addresses [fixed]
+# Backwords Language Python Implementation
 
-* Prove Turing-completeness by emulating brainf*ck
+The interpreter program, written in Python, runs program files.
+Example programs are text files and start with "ex_".
 
 ## Commands
 

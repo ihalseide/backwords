@@ -1,3 +1,0 @@
-# Backwords Language Python Implementation
-
-The interpreter program, written in Python, runs program files.
