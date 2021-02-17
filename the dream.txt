@@ -1,3 +1,0 @@
-The dream is to create a text-based Forth Operating System with full access to GPIO, graphics, sound, files, and other peripherals for the Rasperry Pi. The OS could be able to run and interface with Linux executables too.
-
-My minimum goal is creating it with the ability to type words and write character-based programs. In Forth.
