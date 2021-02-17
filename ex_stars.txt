@@ -1,2 +1,0 @@
-#42 :#13s#0=n^_'*,#1s-#22v #10,; 
-Print out 42 stars and then a new line

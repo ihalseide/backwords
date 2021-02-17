@@ -1,6 +1,0 @@
-\;
-A program with a semicolon in it does not necessarily halt!
-More examples:
-';_
-#n;
-';,
