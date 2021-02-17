@@ -1,103 +1,91 @@
-# Postfix Language `Backwords"
+# The Backwords Programming Language
 
-This is a stack-based programming language. Programs consist of a string of words.
+Backwords is a low level esoteric programming language. There is a data stack, a memory tape, and a program counter. All values are bytes in the range 0 to 255, and the values wrap around. The program runs in an implicit infinite loop that can only exit if there is a runtime error or if the semicolon ';' command is executed.
 
-## Words
+## Issues
 
-The following is a list of words in the language, and the type of operation is sometimes written.
-Nilary: takes 0 arguments from the stack
-Unary: takes 1 argument from the stack
-Dyadic: takes 2 arguments from the stack
+* There is more memory than the program can access with only 1-byte addresses [fixed]
 
-Any string of digits: push the integer to the stack
+* Prove Turing-completeness by emulating brainf*ck
 
-'+' Dyadic addition
+## Commands
 
-'-' Dyadic subtraction
+<pre>
+: duplicates the top of the stack
 
-'*' Dyadic multiplication
+0-9, and A-F multiply the top of the stack by 16 and then add either 0, 1, 2, ... or 15
 
-'/' Dyadic division
++ adds the top two numbers on the stack
 
-'~' Negation, unary
+- subtracts the top two numbers on the stack
 
-'"' Pop and discard the top of the stack, nilary
+* multiplies the top two numbers on the stack
 
-'!' Get the top of the stack and pop the stack that many times (not including the first pop), unary
+/ divides the top two numbers on the stack
 
-'p' Unary print the top of the stack as a number
+% does modular arithmetic with the top two numbers
 
-'P' Unary print the top of the stack as a character
+` does a bitwise NOT to the top of the stack
 
-'^' Push a character from stdin onto the stack
+& does a bitwise AND to the top two values of the stack
 
-'#' Nilary read a decimal number from stdin
+| does a bitwise OR to the top two values of the stack
 
-'?' Only perform the next word if the top of the stack is true
+, emits the top of the stack as a character (97='a' etc.)
 
-'=' Dyadic compare for equality, preserving operands
+? gets a character from input and pushes it onto the stack
 
-'`' Unary logical not, N -> 0, 0 -> 1
+; halts the program
 
- '  Nilary push a string to the stack, delimited by 'single quotes'
+\ explicitly loops the program counter back to the beginning of the program
 
-'S'  Nilary print, by popping the stack until a 0 is reached
-            
-'\' Push the value of the next character in the program onto the stack (so `\~' will push 126 onto the stack)
+_ drops the top of the stack
 
-';' Loop back to beginning, nilary
+# pushes 0 to the stack, and is used to start a number
 
-'$' Preserve the operands for the next operation, nilary
+' push the next character in the program to the stack
 
-'x' Square the top of the stack, unary
+= pushes a 255 if the top two numbers in the stack are equal, otherwise push a 0 (pops both numbers off of the stack)
 
-'.' Duplicate the top of the stack, nilary
+> is like "=" but for if the top of the stack is less than the second
 
-'&' Evaluate the top of the stack as a word, unary
+< is like "=" but for if the top of the stack is greater than the second
 
-'V': Peek at the Nth entry from the top of the stack, unary
+. evaluates the top of the stack as a command
 
-'N' Peek at the (top)th entry in the stack, unary
+^ adds the top of the stack to the program counter, branch forwards
 
-' ' Spaces are ignored
+v subtracts the top of the stack from the program counter, branch backwards
 
-'d' Decrement the top of the stack, unary
+n does the next command only if the top of the stack is [n]ot zero
 
-'i' Increment the top of the stack, unary
+z does the next command only if the top of the stack is [z]ero
 
-'l' Emit a newline character, nilary
+u clears the stack
 
-'t' Emit a tab character, nilary
+s swaps the top two numbers
 
-'H' Halve the top of the stack, unary
+{ move to the previous memory section on the tape
 
-'D' Double the top of the stack, unary
+} move to the next memory section on the tape
 
-'q' Take the square root of the top of the stack, unary
+@ fetches a value from the memory tape at the address given
 
-## Programs to Try in 'Postfix'
+! stores a given value in the memory tape at the given address
 
-Hello world
-    '!dlroW ,olleH'S
+i gets the instruction [top of stack] characters before the current ip
 
-Square a number with a prompt
-    ':#'S#xp
+I gets the instruction [top of stack] characters after the current ip
 
-Square a number without a prompt
-    #xp
+$ pushes the stack size (before the operation). Caution: The stack can hold more than 255 values, but the maximum value $ can return is 255
 
-Add 2 given numbers
-    ##+p
+g prints out the stack, for debugging
 
-Double a given number
-    #.+p
-    #2*p
+k acts as a debug "breakpoint"
 
-Quadratic formula
-    ###.....
+" pushes the contents of a string up to the next double quote, in reverse order. This is useful for pushing a bunch of values onto the stack
+</pre>
 
-A Forth-like language
-
-- Idea: implement an accessible "features" list like in LISP implementations
+All other characters are ignored. "I" and "i" allow the program to read its own source code as data. For the "{" and "}" commands, a memory tape section is 256 bytes
 
 @COPYRIGHT ALL WRONGS RESERVED
