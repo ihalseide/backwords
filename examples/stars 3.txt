@@ -1,0 +1,2 @@
+#4$#1>n^_#FF'*,#1s-:#=n;\
+Print out ^^ stars, using the outer infinite loop!

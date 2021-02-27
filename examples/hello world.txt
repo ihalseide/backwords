@@ -1,0 +1,4 @@
+##A"!dlroW ,olleH":z;,#6v
+
+This is the Hello world program and this is how you print out any string (in reverse)
+Uses zero termination to detect the end of the string, the #A is to print a new line at the end

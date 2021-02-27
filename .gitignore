@@ -1,8 +1,5 @@
 *.swp
-*.exe
-desktop.ini
-
 __pycache__/*
 
-# Example files
-ex_*.txt
+desktop.ini
+
