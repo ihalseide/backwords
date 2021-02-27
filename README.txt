@@ -116,4 +116,10 @@ bytes. Also note that ' " ? # $ are the only five commands that grow the stack,
 and that every other command either keeps the stack the same size or shrinks
 the stack.
 
-@COPYRIGHT ALL WRONGS RESERVED
+		       == The License if You Want One ==
+
+	This project is licensed under the MIT License (see LICENSE.txt).
+
+		       @COPYRIGHT Izak Nathanael Halseide
+			      ALL WRONGS RESERVED
+
