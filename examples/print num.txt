@@ -1,0 +1,14 @@
+? #!
+
+#@ #3Cs #63 > z^_ #@ #14s #C7 > z^_ '2, #@ #C8 s- #!  '1, #@ #64 s- #!  #5^ '0,
+
+#@ #38s #09 > z^_ #A #@ / #1! '0 #1@ + ,  #A #1@ * #1!  #1@ #@ - #! #5^ '0,
+
+#@ '0 + ,; 
+
+;
+Get a character to use as an input number
+Print out a number in decimal
+
+O MY GOSH THIS TOOK SO LONG TO FIGURE OUT
+also sometimes I forget that it reads in base 16!!!

@@ -1,0 +1,3 @@
+#: @#24+, #1+ :#FF=n; #18v
+
+Print out whatever is in the current memory page + 36

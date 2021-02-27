@@ -1,0 +1,4 @@
+
+? : '! =n; ,\
+
+A cat program but until a '!' is read.
