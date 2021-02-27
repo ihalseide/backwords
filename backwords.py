@@ -6,12 +6,15 @@ DIGITS = '0123456789ABCDEF'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('file')
+parser.add_argument('-debug', action='store_true')
 args = parser.parse_args()
+
+if args.debug:
+    print('debug ON')
 
 with open(args.file, 'r') as f:
     program = f.read() 
 
-debug = False 
 ip = 0                # instruction pointer 
 stack = bytearray([]) # data stack 
 
@@ -53,7 +56,7 @@ def execute (x):
         push(pop() * pop())
     elif '/' == x:
         # divide
-        push(pop() / pop())
+        push(pop() // pop())
     elif '%' == x:
         # mod
         push(pop() % pop())
@@ -144,7 +147,8 @@ def execute (x):
         push(tape[index])
     elif '!' == x:
         # Tape store
-        index, value = pop(), pop()
+        index = pop()
+        value = pop()
         index += page * 256
         if index not in range(len(tape)):
             tape_expand()
@@ -194,7 +198,6 @@ try:
         execute(x)
         ip += 1
 except Exception as e:
-    if debug:
+    if args.debug:
         raise e
-    print('Segmentation fault'
     sys.exit(-1)

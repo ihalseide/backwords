@@ -5,6 +5,9 @@ a memory tape, and a program counter. All values are bytes in the range 0 to
 255, and the values wrap around. The program runs in an implicit infinite loop.
 Numbers are in base 16 for compactness (the biggest number is #FF).
 
+Creating a program in this language is pretty much like writing machine code
+by hand, but with ASCII.
+
 [https://github.com/ihalseide/backwords]
 
 == Backwords Language Python Implementation ==
@@ -83,7 +86,8 @@ s	swaps the top two numbers
 
 @	fetches a value from the memory tape at the address given
 
-!	stores a given value in the memory tape at the given address
+!	get an address, then a value, and finally store the value at the
+	given address in the current memory page
 
 i	gets the instruction [top of stack] characters before the current ip
 
